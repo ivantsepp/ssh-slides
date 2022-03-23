@@ -4,59 +4,11 @@ require 'logger'
 require 'rainbow'
 require 'strings-ansi'
 
+Rainbow.enabled = true
+
 module Helper
 
-  TEST_MARKDOWN = <<HEREDOC
-SSH Slides
-=============
-
-Welcome to SSH Slides! Create your presentations using markdown. In fact, the source for this README is at [https://raw.githubusercontent.com/ivantsepp/ssh-slides/master/README.md](https://raw.githubusercontent.com/ivantsepp/ssh-slides/master/README.md).
-
-You can use anything that is supported by markdown. To create a new slide, use `---` to separate your pages.
-
-To advance the slides, use your arrow keys. To disconnect, press control D (^D).
-
----
-
-# Examples
-
-## Lists
-
-- This is a list
-  - and is nested
-  - nested #2
-- Another item
-
-1. Numbered
-2. List
-
-## Text
-
-*Italic*
-
-`Code block`
-
-~~Strikethrough~~
-
-
-> This is a block quote
-
----
-
-# Code blocks
-
-The following will be highlighted in Ruby syntax:
-
-```ruby
-puts "Hello, world!"
-```
-
----
-
-# The End
-
-And that's all I have, thanks for visiting!
-HEREDOC
+  TEST_MARKDOWN = File.read('./example_presentation.md')
 
   def self.get_footer(id, num_connections, current_slide, total_slides, max_width, control=true)
     if control && num_connections == 0
@@ -113,10 +65,23 @@ HEREDOC
   end
 
   def self.get_logger
+    STDOUT.sync = true
     logger = Logger.new STDOUT
     logger.level = Logger::ERROR
     logger.formatter = LoggerFormatter.new
     logger
+  end
+
+  def self.is_left_key(string)
+    string.include?("\e[D") || string.include?("\e[A") || string.include?("p") || string.include?("h") || string.include?("k")
+  end
+
+  def self.is_right_key(string)
+    string.include?(" ") || string.include?("\e[C") || string.include?("\e[B") || string.include?("\n") || string.include?("n") || string.include?("j") || string.include?("l")
+  end
+
+  def self.is_exit_key(string)
+    string.include?(0x04.chr) || string.include?("\u0003") || string.include?("\e\e") || string.include?("q")
   end
 end
 

@@ -1,0 +1,19 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    ffi (1.15.0)
+    hrr_rb_ssh (0.4.2)
+    rainbow (3.1.1)
+    strings-ansi (0.2.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  ffi (= 1.15.0)
+  hrr_rb_ssh (= 0.4.2)
+  rainbow (= 3.1.1)
+  strings-ansi (= 0.2.0)
+
+BUNDLED WITH
+   2.1.4

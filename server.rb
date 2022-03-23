@@ -30,8 +30,8 @@ class Server
 
     conn_exit = HrrRbSsh::Connection::RequestHandler.new { |context|
       context.chain_proc { |chain|
-        context.io[1].write "Usage: ssh -t peachtree.ml create [name-of-session] url-to-markdown-file\r\n"
-        context.io[1].write "       ssh -t peachtree.ml join name-of-session\r\n"
+        context.io[1].write "Usage: ssh -t slides.tseivan.com create [name-of-session] url-to-markdown-file\r\n"
+        context.io[1].write "       ssh -t slides.tseivan.com join name-of-session\r\n"
       }
     }
 
@@ -99,11 +99,11 @@ class Server
 
               is_complete = false
               $mutex.synchronize do
-                if buf.include?("\e[D") && $sessions[id][:current_slide] > 0
+                if Helper.is_left_key(buf) && $sessions[id][:current_slide] > 0
                   $sessions[id][:current_slide]-=1
-                elsif buf.include?("\e[C") && $sessions[id][:current_slide] < slides.count - 1
+                elsif Helper.is_right_key(buf) && $sessions[id][:current_slide] < slides.count - 1
                   $sessions[id][:current_slide]+=1
-                elsif buf.include?(0x04.chr) # break if ^D
+                elsif Helper.is_exit_key(buf) # break if ^D
                   $sessions[id][:complete] = is_complete = true
                 else
                   break
@@ -188,8 +188,7 @@ class Server
 
 end
 
-
-server = TCPServer.new 10022
+server = TCPServer.new(ARGV.first || 10022)
 s = Server.new
 loop do
   Thread.new(server.accept) do |io|
