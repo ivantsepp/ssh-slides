@@ -75,47 +75,43 @@ class Server
           current_slide = 0
           num_connections = 0
 
-          begin
-            loop do
+          loop do
 
-              $mutex.synchronize do
-                current_slide = $sessions[id][:current_slide]
-                num_connections = $sessions[id][:num_connections]
+            $mutex.synchronize do
+              current_slide = $sessions[id][:current_slide]
+              num_connections = $sessions[id][:num_connections]
+            end
+
+            slide = slides[current_slide % slides.count]
+
+            render_slide(context.io[1],
+              id,
+              num_connections,
+              slide,
+              current_slide,
+              slides.count,
+              window_width,
+              window_height
+            )
+
+            buf = context.io[0].readpartial(1024)
+
+            is_complete = false
+            $mutex.synchronize do
+              if Helper.is_left_key(buf) && $sessions[id][:current_slide] > 0
+                $sessions[id][:current_slide]-=1
+              elsif Helper.is_right_key(buf) && $sessions[id][:current_slide] < slides.count - 1
+                $sessions[id][:current_slide]+=1
+              elsif Helper.is_exit_key(buf) # break if ^D
+                $sessions[id][:complete] = is_complete = true
+              else
+                break
               end
-
-              slide = slides[current_slide % slides.count]
-
-              render_slide(context.io[1],
-                id,
-                num_connections,
-                slide,
-                current_slide,
-                slides.count,
-                window_width,
-                window_height
-              )
-
-              buf = context.io[0].readpartial(1024)
-
-              is_complete = false
-              $mutex.synchronize do
-                if Helper.is_left_key(buf) && $sessions[id][:current_slide] > 0
-                  $sessions[id][:current_slide]-=1
-                elsif Helper.is_right_key(buf) && $sessions[id][:current_slide] < slides.count - 1
-                  $sessions[id][:current_slide]+=1
-                elsif Helper.is_exit_key(buf) # break if ^D
-                  $sessions[id][:complete] = is_complete = true
-                else
-                  break
-                end
-                $sessions[id][:cv].broadcast
-
-              end
-              break if is_complete
+              $sessions[id][:cv].broadcast
 
             end
-          rescue => e
-            logger.error([e.backtrace[0], ": ", e.message, " (", e.class.to_s, ")\n\t", e.backtrace[1..-1].join("\n\t")].join)
+            break if is_complete
+
           end
 
         elsif command.first == "join"
@@ -128,29 +124,43 @@ class Server
               num_connections = $sessions[id][:num_connections]
             end
 
-            current_slide = nil
-            is_complete = false
+            render_thread = Thread.new do
+              current_slide = nil
+              is_complete = false
+
+              loop do
+
+                $mutex.synchronize do
+                  $sessions[id][:cv].wait($mutex) if $sessions[id][:current_slide] == current_slide && !current_slide.nil?
+                  current_slide = $sessions[id][:current_slide]
+                  is_complete = $sessions[id][:complete]
+                end
+
+                break if is_complete
+
+                render_slide(context.io[1],
+                  id,
+                  num_connections,
+                  slides[current_slide],
+                  current_slide,
+                  slides.count,
+                  window_width,
+                  window_height,
+                  false
+                )
+              end
+            end
 
             loop do
-
-              $mutex.synchronize do
-                $sessions[id][:cv].wait($mutex) if $sessions[id][:current_slide] == current_slide && !current_slide.nil?
-                current_slide = $sessions[id][:current_slide]
-                is_complete = $sessions[id][:complete]
+              buf = context.io[0].readpartial(1024)
+              if Helper.is_exit_key(buf)
+                Thread.kill(render_thread)
+                break
               end
+            end
 
-              break if is_complete
-
-              render_slide(context.io[1],
-                id,
-                num_connections,
-                slides[current_slide],
-                current_slide,
-                slides.count,
-                window_width,
-                window_height,
-                false
-              )
+            $mutex.synchronize do
+              $sessions[id][:num_connections] -= 1
             end
 
           else
