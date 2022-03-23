@@ -1,9 +1,8 @@
 # SSH Slides
 
-SSH Slides is an SSH server that hosts terminal-based presentations where your viewers can follow along in their own terminals.
+SSH Slides is an SSH server that hosts terminal-based presentations where your viewers can follow along in their own terminals. This service is currently located at `slides.tseivan.com`.
 
-> image here
-
+![Screenshot of SSH Slides](./screenshot.png "Screenshot of SSH Slides")
 
 ## Usage
 
@@ -41,4 +40,9 @@ As the viewer of the session you can:
 
 ### Implementation / Notes
 
+This idea was heavily inspired by this [amazing talk on SSH](https://vimeo.com/54505525). In the presentation, the speaker used a host where viewers could SSH in and view the slides in their own terminals. This was a really cool hack/idea to me and I wanted to challenge myself by extending that idea to provide a service for anyone to host an SSH presentation session. I quickly hacked on this project over my sabbatical and I used it as a learning experience as well to understand the underlying SSH protocol.
 
+
+Since this was a learning experience, I went with Ruby as it's one of my favorite languages. I might revisit this decision as I've seen some awesome Go libraries that make it easy to hack on SSH apps like [wish](https://github.com/charmbracelet/wish). There are also amazing Go libraries written by the same folks for terminal hacking. I saw how beautiful the terminal slides looked in [glamour](https://github.com/charmbracelet/glamour) and [slides](https://github.com/maaslalani/slides). Those projects looked so good that I ended up deciding to use them in my project despite them being in a different language. I followed [this gist guide](https://gist.github.com/schweigert/385cd8e2267140674b6c4818d8f0c373) to bridge the Go code to my Ruby code.
+
+As you can tell, this project is very barebones but please bare with me as I continue to polish and improve this project!

@@ -10,7 +10,7 @@ $sessions = {}
 class Server
 
   def render_slide(io, id, num_connections, slide, current_slide, total_slides, window_width, window_height, control = true)
-    io.write "\e[2J\e[H"
+    io.write "\e[2J\e[H" # clear the screen
     io.write "\x1b[?25l" # hide cursor
 
     parsed_slide = Helper.glamourify(slide, window_width)
