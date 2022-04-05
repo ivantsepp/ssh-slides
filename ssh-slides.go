@@ -75,7 +75,6 @@ func main() {
 
     <-done
     log.Println("Stopping SSH server")
-    // TODO timeouts
     ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
     defer func() { cancel() }()
     if err := s.Shutdown(ctx); err != nil {
@@ -279,14 +278,14 @@ func (m model) View() string {
     slideInfo := magentaStyle.Render("Slide ") +
         magentaStyle.Bold(true).Render(strconv.Itoa(m.CurrentSlide + 1)) +
         magentaStyle.Render(" out of ") +
-        magentaStyle.Bold(true).Render(strconv.Itoa(length))
+        magentaStyle.Bold(true).PaddingRight(2).Render(strconv.Itoa(length))
 
     var connInfo string
 
     if m.NumConnections == 0 {
-        connInfo = redStyle.Render("Your join key is: ") + redStyle.Bold(true).Render(m.Session.Name)
+        connInfo = redStyle.PaddingLeft(2).Render("Your join key is: ") + redStyle.Bold(true).Render(m.Session.Name)
     } else {
-        connInfo = redStyle.Render("Number of Viewers: ") + redStyle.Bold(true).Render(strconv.Itoa(m.NumConnections))
+        connInfo = redStyle.PaddingLeft(2).Render("Number of Viewers: ") + redStyle.Bold(true).Render(strconv.Itoa(m.NumConnections))
     }
 
     footer := JoinHorizontal(connInfo, slideInfo, m.Width)
