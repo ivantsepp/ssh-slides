@@ -102,6 +102,13 @@ func Middleware() wish.Middleware {
                           url = command[2]
                         }
                         if id != "" && url != "" {
+
+                            res, _ := db.Load(id)
+                            if res != nil && !res.(*Session).Complete {
+                                fmt.Fprintln(s, "Session with that ID already exists")
+                                return
+                            }
+
                             slides, err := GetSlides(url)
                             if err == nil {
                                 session := NewSession(id, slides)
