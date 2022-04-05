@@ -27,7 +27,7 @@ import (
     "github.com/gliderlabs/ssh"
 )
 
-const host = "localhost"
+const host = "0.0.0.0"
 var port = 23234
 
 var db sync.Map
@@ -37,7 +37,7 @@ func main() {
     demoSession := NewSession("demo", GetDemoSlides())
     db.Store("demo", demoSession)
 
-    ticker := time.NewTicker(5 * time.Second)
+    ticker := time.NewTicker(30 * time.Second)
     go func() {
         for {
            select {

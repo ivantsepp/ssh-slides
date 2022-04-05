@@ -26,6 +26,8 @@ ssh -t slides.tseivan.com join SESSION_ID
 
 Your viewers should then see the same content that you are seeing!
 
+Check out the demo session `ssh -t slides.tseivan.com join demo` where these slides are shown on a 30 seconds timer (slides will advance every 30 seconds).
+
 ### Navigation
 
 As the creator of the session you can:
@@ -37,8 +39,22 @@ As the creator of the session you can:
 As the viewer of the session you can:
 1. To exit and leave, press any of the following keys: `ctrl+c`, `ctrl+d`, `esc`, `q`
 
+### Deploy
+
+
+```bash
+git clone https://github.com/ivantsepp/ssh-slides
+cd ssh-slides
+mkdir .ssh
+ssh-keygen -o -a 100 -t ed25519 -f .ssh/id_ed25519 -C "comment"
+go build ssh-slides.go
+PORT=22 ./ssh-slides 2> logs.txt &
+```
+
 
 ### Implementation / Notes
+
+**The following is a bit outdated as I rewrote this in Go. Will update this with better details later!**
 
 This idea was heavily inspired by this [amazing talk on SSH](https://vimeo.com/54505525). In the presentation, the speaker used a host where viewers could SSH in and view the slides in their own terminals. This was a really cool hack/idea to me and I wanted to challenge myself by extending that idea to provide a service for anyone to host an SSH presentation session. I quickly hacked on this project over my sabbatical and I used it as a learning experience as well to understand the underlying SSH protocol.
 
