@@ -37,7 +37,7 @@ func main() {
     demoSession := NewSession("demo", GetDemoSlides())
     db.Store("demo", demoSession)
 
-    ticker := time.NewTicker(30 * time.Second)
+    ticker := time.NewTicker(10 * time.Second)
     go func() {
         for {
            select {
