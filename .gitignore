@@ -1,4 +1,1 @@
-notes2/
-id_rsa*
-my_lib*
-.ssh
+id_ed25519*

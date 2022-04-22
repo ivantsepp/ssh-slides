@@ -44,8 +44,6 @@ As the viewer of the session you can:
 ```bash
 git clone https://github.com/ivantsepp/ssh-slides
 cd ssh-slides
-mkdir .ssh
-ssh-keygen -o -a 100 -t ed25519 -f .ssh/id_ed25519 -C "comment"
 go build ssh-slides.go
 PORT=22 ./ssh-slides 2> logs.txt &
 ```
