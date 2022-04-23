@@ -28,12 +28,12 @@ import (
 )
 
 const host = "0.0.0.0"
+const serverName = "slides.tseivan.com"
 var port = 23234
 
 var db sync.Map
 
-func main() {
-
+func addDemoSlides() {
     demoSession := NewSession("demo", GetDemoSlides())
     db.Store("demo", demoSession)
 
@@ -46,6 +46,10 @@ func main() {
             }
         }
      }()
+}
+
+func main() {
+    addDemoSlides()
 
     portEnv := os.Getenv("PORT")
     if len(portEnv) != 0 {
@@ -80,6 +84,12 @@ func main() {
     if err := s.Shutdown(ctx); err != nil {
         log.Fatalln(err)
     }
+}
+
+func printHelp(s ssh.Session) {
+    fmt.Fprintln(s, "Usage: ssh -t", serverName, "create [name-of-session] url-to-markdown-file")
+    fmt.Fprintln(s, "       ssh -t", serverName, "join name-of-session")
+    fmt.Fprintln(s, "       ssh -t", serverName, "join demo # join a demo session that advances the slides every 30 seconds!")
 }
 
 func Middleware() wish.Middleware {
@@ -127,9 +137,7 @@ func Middleware() wish.Middleware {
             }
 
             if sessionId == "" {
-                fmt.Fprintln(s, "Usage: ssh -t slides.tseivan.com create [name-of-session] url-to-markdown-file")
-                fmt.Fprintln(s, "       ssh -t slides.tseivan.com join name-of-session")
-                fmt.Fprintln(s, "       ssh -t slides.tseivan.com join demo # join a demo session that advances the slides every 30 seconds!")
+                printHelp(s)
                 return
             }
 
@@ -149,6 +157,7 @@ func Middleware() wish.Middleware {
                 Width:  pty.Window.Width,
                 Height: pty.Window.Height,
                 Slides: session.Slides,
+                Style: "dark",
                 NumConnections: session.NumConnections,
                 Session: session,
                 Complete: false,
@@ -216,6 +225,7 @@ type model struct {
     Width  int
     Height int
     Slides []string
+    Style string
     CurrentSlide int
     NumConnections int
     isAdmin bool
@@ -242,12 +252,27 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
                 m.Session.NextSlide()
             case "up", "k", "left", "h", "p", "pgup":
                 m.Session.PreviousSlide()
+            case "t":
+                if m.Style == "light" {
+                    m.Style = "dark"
+                } else {
+                    m.Style = "light"
+                }
+                return m, nil
             }
+
         } else {
             switch msg.String() {
             case "q", "ctrl+c", "ctrl+d", "esc":
                 m.Session.DecreaseNumConnections()
                 return m, tea.Quit
+            case "t":
+                if m.Style == "light" {
+                    m.Style = "dark"
+                } else {
+                    m.Style = "light"
+                }
+                return m, nil
             }
         }
 
@@ -267,9 +292,7 @@ func (m model) View() string {
         BorderForeground(lipgloss.Color("62"))
 
     renderer, err := glamour.NewTermRenderer(
-        // TODO what is this
-        glamour.WithStylePath("notty"),
-        glamour.WithStandardStyle("dark"),
+        glamour.WithStandardStyle(m.Style),
         glamour.WithWordWrap(m.Width - 2),
     )
 

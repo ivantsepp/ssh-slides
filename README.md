@@ -35,9 +35,11 @@ As the creator of the session you can:
 1. To go to the next slide: `space`, `right`, `down`, `enter`, `n`, `j`, `l`
 2. To go to the previous slide: `left`, `up`, `p`, `h`, `k`
 3. To exit and finish the presentation session: `ctrl+c`, `ctrl+d`, `esc`, `q`
+4. Toggle between dark and light mode: `t`
 
 As the viewer of the session you can:
 1. To exit and leave: `ctrl+c`, `ctrl+d`, `esc`, `q`
+2. Toggle between dark and light mode: `t`
 
 ### Deploy
 
