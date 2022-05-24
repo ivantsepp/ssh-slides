@@ -152,6 +152,9 @@ func Middleware() wish.Middleware {
 
             session := res.(*Session)
 
+            connectionChannel := make(chan struct{}, 1)
+            session.ConnectionChannels = append(session.ConnectionChannels, connectionChannel)
+
             m := model{
                 Term:   pty.Term,
                 Width:  pty.Window.Width,
@@ -162,6 +165,7 @@ func Middleware() wish.Middleware {
                 Session: session,
                 Complete: false,
                 isAdmin: isAdmin,
+                Channel: connectionChannel,
             }
 
             if !isAdmin {
@@ -171,38 +175,11 @@ func Middleware() wish.Middleware {
             opts := append([]tea.ProgramOption{tea.WithAltScreen()}, tea.WithInput(s), tea.WithOutput(s))
             p := tea.NewProgram(m, opts...)
 
-            // Render loop
-            currentSlide := m.CurrentSlide
-            isComplete := m.Complete
-            numConnections := m.NumConnections
-            go func() {
-                for {
-                    session.ConditionVariable.L.Lock()
-                    if currentSlide == session.CurrentSlide &&
-                        numConnections == session.NumConnections &&
-                        !session.Complete {
-                        session.ConditionVariable.Wait()
-                    }
-                    currentSlide = session.CurrentSlide
-                    isComplete = session.Complete
-                    numConnections = session.NumConnections
-                    session.ConditionVariable.L.Unlock()
-
-                    if isComplete {
-                        p.Send(tea.Quit())
-                        return;
-                    }
-                    p.Send(UpdateMsg{CurrentSlide: currentSlide, NumConnections: numConnections})
-                }
-            }()
-
             go func() {
                 for {
                     select {
                     case <-s.Context().Done():
-                        if p != nil {
-                            p.Quit()
-                        }
+                        return
                     case w := <-windowChanges:
                         if p != nil {
                             p.Send(tea.WindowSizeMsg{Width: w.Width, Height: w.Height})
@@ -211,6 +188,19 @@ func Middleware() wish.Middleware {
                         if err != nil {
                             log.Print(err)
                         }
+                        return
+                    case <-connectionChannel:
+                        session.Lock.RLock()
+                        currentSlide := session.CurrentSlide
+                        isComplete := session.Complete
+                        numConnections := session.NumConnections
+                        session.Lock.RUnlock()
+
+                        if isComplete {
+                            p.Send(tea.Quit())
+                            return
+                        }
+                        p.Send(UpdateMsg{CurrentSlide: currentSlide, NumConnections: numConnections})
                     }
                 }
             }()
@@ -231,6 +221,7 @@ type model struct {
     isAdmin bool
     Complete bool
     Session *Session
+    Channel chan struct{}
 }
 
 func (m model) Init() tea.Cmd {
@@ -264,7 +255,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
         } else {
             switch msg.String() {
             case "q", "ctrl+c", "ctrl+d", "esc":
-                m.Session.DecreaseNumConnections()
+                m.Session.DecreaseNumConnections(m.Channel)
                 return m, tea.Quit
             case "t":
                 if m.Style == "light" {
@@ -394,7 +385,7 @@ type Session struct {
     CurrentSlide int
     NumConnections int
     Complete bool
-    ConditionVariable *sync.Cond
+    ConnectionChannels []chan struct{}
 }
 
 func (s *Session) NextSlide() {
@@ -402,7 +393,7 @@ func (s *Session) NextSlide() {
         s.Lock.Lock()
         s.CurrentSlide += 1
         s.Lock.Unlock()
-        s.ConditionVariable.Broadcast()
+        s.broadcast()
     }
 }
 
@@ -410,7 +401,7 @@ func (s *Session) NextSlideLoop() {
     s.Lock.Lock()
     s.CurrentSlide = (s.CurrentSlide + 1) % len(s.Slides)
     s.Lock.Unlock()
-    s.ConditionVariable.Broadcast()
+    s.broadcast()
 }
 
 func (s *Session) PreviousSlide() {
@@ -418,7 +409,7 @@ func (s *Session) PreviousSlide() {
         s.Lock.Lock()
         s.CurrentSlide -= 1
         s.Lock.Unlock()
-        s.ConditionVariable.Broadcast()
+        s.broadcast()
     }
 }
 
@@ -426,21 +417,36 @@ func (s *Session) Finish() {
     s.Lock.Lock()
     s.Complete = true
     s.Lock.Unlock()
-    s.ConditionVariable.Broadcast()
+    s.broadcast()
 }
 
-func (s *Session) DecreaseNumConnections() {
+func (s *Session) DecreaseNumConnections(originalChannel chan struct{}) {
     s.Lock.Lock()
     s.NumConnections -= 1
+    index := 0
+    for i, c := range s.ConnectionChannels {
+        if c == originalChannel {
+            index = i
+        }
+    }
+    log.Print("removed this index")
+    log.Print(index)
+    s.ConnectionChannels = append(s.ConnectionChannels[:index], s.ConnectionChannels[index+1:]...)
     s.Lock.Unlock()
-    s.ConditionVariable.Broadcast()
+    s.broadcast()
 }
 
 func (s *Session) IncreaseNumConnections() {
     s.Lock.Lock()
     s.NumConnections += 1
     s.Lock.Unlock()
-    s.ConditionVariable.Broadcast()
+    s.broadcast()
+}
+
+func (s *Session) broadcast() {
+    for _, c := range s.ConnectionChannels {
+        c <- struct{}{}
+    }
 }
 
 type UpdateMsg struct{
@@ -457,6 +463,5 @@ func NewSession(name string, slides []string) *Session {
         Complete: false,
     }
     s.Lock = &sync.RWMutex{}
-    s.ConditionVariable = sync.NewCond(s.Lock)
     return s
 }
