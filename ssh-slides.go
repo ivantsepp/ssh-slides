@@ -268,6 +268,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
+		return m, tea.ClearScreen
+
 	case UpdateMsg:
 		m.CurrentSlide = msg.CurrentSlide
 		m.NumConnections = msg.NumConnections
